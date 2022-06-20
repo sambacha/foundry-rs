@@ -31,10 +31,13 @@ jobs:
     name: fork unit tests
     runs-on: ubuntu-latest
     env:
-      ETH_RPC_URL: https://eth-mainnet.alchemyapi.io/v2/C3JEvfW6VgtqZQa-Qp1E-2srEiIc02sD
+      ETH_RPC_URL: https://mainnet.infura.io/v3/3ff0c675dc614116aa126b14f636897 
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_STEP_DEBUG: true
+
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -50,8 +53,16 @@ jobs:
         with:
           path: "$HOME/.foundry/cache"
           key: rpc-cache-${{ hashFiles('cli/tests/rpc-cache-keyfile') }}
+          
+      - uses: lhotari/action-upterm@v1
+        with:
+          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+          limit-access-to-actor: true
+          ## limits ssh access and adds the ssh public keys of the listed GitHub users
+          limit-access-to-users: sambacha,mattsse,0xjanitor
 
       - name: cargo test
+        id: unit_forktests
         run: cargo test --locked --workspace --all-features --lib --bins fork
 
   integration:
