@@ -179,33 +179,46 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+      RUST_VERSION: 1.61.0
+
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3.0.2
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           profile: minimal
           components: rustfmt, clippy
           override: true
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v1.4.0
         with:
           cache-on-failure: true
+          
+      # sanity check
+      - run: rustup default ${{ env.RUST_VERSION }}
+        id: lint_default_version
+        
+      - run: rustup component add rustfmt
+        id: add_rustfmt
+        
+      - run: rustup component add clippy
+        id: add_clippy
 
-      - name: cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --check
+      - name: Run rustfmt check
+        id: check_rustfmt
+        run: |
+          cargo fmt --version
+          cargo fmt -- --check || (echo "Please reformat your code with 'cargo fmt' (version $(cargo fmt --version))"; false)
 
-      - name: cargo clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          args: --all --all-features -- -D warnings
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: cargo fmt --check
+        id: lint_fmt_check
+      - run: cargo clippy --all-targets --all-features --all
+        id: lint_clippy_checkall
+
 
   cross-platform:
     name: Cross-platform tests
