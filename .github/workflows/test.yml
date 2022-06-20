@@ -189,7 +189,7 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           profile: minimal
           components: rustfmt, clippy
           override: true
@@ -202,11 +202,6 @@ jobs:
       - run: rustup default ${{ env.RUST_VERSION }}
         id: lint_default_version
         
-      - run: rustup component add rustfmt
-        id: add_rustfmt
-        
-      - run: rustup component add clippy
-        id: add_clippy
 
       - name: Run rustfmt check
         id: check_rustfmt
