@@ -10,12 +10,17 @@ on:
 
 env:
   IS_NIGHTLY: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+  ACTIONS_RUNNER_DEBUG: true
+  ACTIONS_STEP_DEBUG: true 
 
 jobs:
   prepare:
     name: Prepare release
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+    timeout-minutes: 60
+    
     outputs:
       tag_name: ${{ steps.release_info.outputs.tag_name }}
       release_name: ${{ steps.release_info.outputs.release_name }}
@@ -70,6 +75,8 @@ jobs:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
     runs-on: ${{ matrix.job.os }}
     needs: prepare
+    outputs:
+        job_status: ${{ job.status }}
     strategy:
       matrix:
         job:
@@ -106,7 +113,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -217,7 +224,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Moves the `nightly` tag to `HEAD`
       - name: Move nightly tag
