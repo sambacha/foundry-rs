@@ -85,24 +85,14 @@ jobs:
             svm_target_platform: linux-amd64
           - os: ubuntu-latest
             platform: linux
-            target: aarch64-unknown-linux-gnu
-            arch: arm64
-            svm_target_platform: linux-aarch64
+            target: x86_64-unknown-linux-musl
+            arch: amd64
+            svm_target_platform: linux-musl
           - os: macos-latest
             platform: darwin
             target: x86_64-apple-darwin
             arch: amd64
             svm_target_platform: macosx-amd64
-          - os: macos-latest
-            platform: darwin
-            target: aarch64-apple-darwin
-            arch: arm64
-            svm_target_platform: macosx-aarch64
-          #- os: windows-latest
-          #  platform: win32
-          #  target: x86_64-pc-windows-msvc
-          #  arch: amd64
-          #  svm_target_platform: macosx-amd64
 
     steps:
       - name: Checkout sources
@@ -115,24 +105,17 @@ jobs:
           toolchain: stable
           target: ${{ matrix.job.target }}
           override: true
-
+        
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
 
-      - name: Apple M1 setup
-        if: ${{ matrix.job.target == 'aarch64-apple-darwin' }}
+      - name: Linux musl setup
+        if: ${{ matrix.job.target == 'x86_64-unknown-linux-muslu' }}
         run: |
-          echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
-          echo "MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version)" >> $GITHUB_ENV
-
-      - name: Linux ARM setup
-        if: ${{ matrix.job.target == 'aarch64-unknown-linux-gnu' }}
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-
+          sudo apt-get update -qqy
+          sudo apt-get install -qqy clang lld build-base linux-headers
+          
       - name: Build binaries
         uses: actions-rs/cargo@v1
         env:
@@ -140,7 +123,7 @@ jobs:
         with:
           command: build
           args: --release --bins --target ${{ matrix.job.target }}
-
+        
       - name: Archive binaries
         id: artifacts
         env:
@@ -217,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Moves the `nightly` tag to `HEAD`
       - name: Move nightly tag
@@ -228,9 +211,3 @@ jobs:
             const moveTag = require('./.github/scripts/move-tag.js')
             await moveTag({ github, context }, 'nightly')
 
-      - name: Delete old nightlies
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const prunePrereleases = require('./.github/scripts/prune-prereleases.js')
-            await prunePrereleases({github, context})
